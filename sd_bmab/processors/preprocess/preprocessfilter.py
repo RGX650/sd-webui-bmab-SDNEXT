@@ -3,15 +3,15 @@ from sd_bmab.base import Context, ProcessorBase
 from sd_bmab.base import filter
 
 
-class FinalFilter(ProcessorBase):
+class PreprocessFilter(ProcessorBase):
 	def __init__(self) -> None:
 		super().__init__()
 		self.filter_name = 'None'
 		self.filter = None
 
 	def preprocess(self, context: Context, image: Image):
-		self.filter_name = context.args.get('postprocess_final_filter', self.filter_name)
-		return self.filter_name != 'None'
+		self.filter_name = context.args.get('txt2img_filter_hresfix_before_upscale', self.filter_name)
+		return not context.is_hires_fix() and self.filter_name != 'None'
 
 	def process(self, context: Context, image: Image):
 		self.filter = filter.get_filter(self.filter_name)

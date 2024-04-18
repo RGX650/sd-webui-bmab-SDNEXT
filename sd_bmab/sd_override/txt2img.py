@@ -46,6 +46,12 @@ class StableDiffusionProcessingTxt2ImgOv(StableDiffusionProcessingTxt2Img):
         self.extra_noise = 0
         self.initial_noise_multiplier = opts.initial_noise_multiplier
 
+    def init(self, all_prompts, all_seeds, all_subseeds):
+        ret = super().init(all_prompts, all_seeds, all_subseeds)
+        self.extra_generation_params['Hires prompt'] = ''
+        self.extra_generation_params['Hires negative prompt'] = ''
+        return ret
+    
     def txt2img_image_conditioning(p, x, width=None, height=None):
         width = width or p.width
         height = height or p.height
@@ -112,23 +118,25 @@ class StableDiffusionProcessingTxt2ImgOv(StableDiffusionProcessingTxt2Img):
                     if self.bscript_args is not None:
                         filter_name = self.bscript_args['txt2img_filter_hresfix_before_upscale']
                         filter1 = filter.get_filter(filter_name)
-                        filter.preprocess_filter(filter1, None)
-                        filter.process_filter(filter1, None, None, image, sdprocess=self)
-                        filter.postprocess_filter(filter1, None)
+                        from sd_bmab.base import Context
+                        context = Context(self.bscript, self, self.bscript_args, i)
+                        filter.preprocess_filter(filter1, context, image)
+                        image = filter.process_filter(filter1, context, None, image, sdprocess=self)
+                        filter.postprocess_filter(filter1, context)
 
                         if hasattr(self.bscript, 'resize_image'):
-                            resized = self.bscript.resize_image(self, self.bscript_args, _i, 0, image, target_width, target_height, self.hr_upscaler)
+                            resized = self.bscript.resize_image(self, self.bscript_args, 0, i, image, target_width, target_height, self.hr_upscaler)
                         else:
                             image = images.resize_image(1, image, target_width, target_height, upscaler_name=self.hr_upscaler)
 
                         filter_name = self.bscript_args['txt2img_filter_hresfix_after_upscale']
                         filter2 = filter.get_filter(filter_name)
-                        filter.preprocess_filter(filter2, None)
-                        image = filter.process_filter(filter2, None, image, resized, sdprocess=self)
-                        filter.postprocess_filter(filter2, None)
+                        filter.preprocess_filter(filter2, context, image)
+                        image = filter.process_filter(filter2, context, image, resized, sdprocess=self)
+                        filter.postprocess_filter(filter2, context)
                     else:
                         if hasattr(self.bscript, 'resize_image'):
-                            image = self.bscript.resize_image(self, self.bscript_args, _i, 0, image, target_width, target_height, self.hr_upscaler)
+                            image = self.bscript.resize_image(self, self.bscript_args, 0, i, image, target_width, target_height, self.hr_upscaler)
                         else:
                             image = images.resize_image(1, image, target_width, target_height, upscaler_name=self.hr_upscaler)
 
@@ -164,6 +172,10 @@ class StableDiffusionProcessingTxt2ImgOv(StableDiffusionProcessingTxt2Img):
                     noise = create_random_tensors(samples.shape[1:], seeds=seeds, subseeds=subseeds, subseed_strength=subseed_strength, p=self)
                     modules.sd_models.apply_token_merging(self.sd_model, self.get_token_merging_ratio(for_hr=True))
                     hypertile_set(self, hr=True)
+                    
+                    with sd_models.SkipWritingToConfig():
+                        sd_models.reload_model_weights(info=self.hr_checkpoint_info)
+                    
                     samples = self.sampler.sample_img2img(self, samples, noise, conditioning, unconditional_conditioning, steps=self.hr_second_pass_steps or self.steps, image_conditioning=image_conditioning)
                     modules.sd_models.apply_token_merging(self.sd_model, self.get_token_merging_ratio())
                 else:

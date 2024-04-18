@@ -27,6 +27,7 @@ class ResamplePreprocessor(ProcessorBase):
 		self.prompt = None
 		self.negative_prompt = None
 		self.sampler = None
+		self.scheduler = None
 		self.upscaler = None
 		self.steps = 20
 		self.cfg_scale = 0.7
@@ -55,6 +56,7 @@ class ResamplePreprocessor(ProcessorBase):
 		self.prompt = self.resample_opt.get('prompt', self.prompt)
 		self.negative_prompt = self.resample_opt.get('negative_prompt', self.negative_prompt)
 		self.sampler = self.resample_opt.get('sampler', self.sampler)
+		self.scheduler = self.resample_opt.get('scheduler', self.scheduler)
 		self.upscaler = self.resample_opt.get('upscaler', self.upscaler)
 		self.steps = self.resample_opt.get('steps', self.steps)
 		self.cfg_scale = self.resample_opt.get('cfg_scale', self.cfg_scale)
@@ -91,7 +93,6 @@ class ResamplePreprocessor(ProcessorBase):
 		if self.checkpoint != constants.checkpoint_default or self.vae != constants.vae_default:
 			loaded_vae_file = context.args.get('loaded_vae_file')
 			context.save_and_apply_checkpoint(self.checkpoint, self.vae, self.loaded_vae_file)
-
 		if self.prompt == '':
 			self.prompt = context.get_prompt_by_index()
 			debug_print('prompt', self.prompt)
@@ -105,6 +106,8 @@ class ResamplePreprocessor(ProcessorBase):
 			self.checkpoint = context.sdprocessing.sd_model
 		if self.sampler == constants.sampler_default:
 			self.sampler = context.sdprocessing.sampler_name
+		if self.scheduler == constants.scheduler_default:
+			self.scheduler = util.get_scheduler(context.sdprocessing)
 
 		bmab_filter = filter.get_filter(self.filter)
 
@@ -115,11 +118,21 @@ class ResamplePreprocessor(ProcessorBase):
 			prompt=self.prompt,
 			negative_prompt=self.negative_prompt,
 			sampler_name=self.sampler,
+			scheduler=self.scheduler,
 			steps=self.steps,
 			cfg_scale=self.cfg_scale,
 		)
 
-		filter.preprocess_filter(bmab_filter, context, options)
+		#if self.checkpoint != constants.checkpoint_default:
+			#override_settings = options.get('override_settings', {})
+			#override_settings['sd_model_checkpoint'] = self.checkpoint
+			#options['override_settings'] = override_settings
+		#if self.vae != constants.vae_default:
+			#override_settings = options.get('override_settings', {})
+			#override_settings['sd_vae'] = self.vae
+			#options['override_settings'] = override_settings
+		
+		filter.preprocess_filter(bmab_filter, context, image, options)
 
 		context.add_job()
 		if self.save_image:
@@ -136,7 +149,7 @@ class ResamplePreprocessor(ProcessorBase):
 			if self.method == 'txt2img-1pass' or self.method == 'txt2img-2pass':
 				options['width'] = context.sdprocessing.width
 				options['height'] = context.sdprocessing.height
-				processed = process_txt2img(context.sdprocessing, options=options, controlnet=cn_op_arg)
+				processed = process_txt2img(context, options=options, controlnet=cn_op_arg)
 			elif self.method == 'img2img-1pass':
 				del cn_op_arg['input_image']
 				options['width'] = context.sdprocessing.width
@@ -151,7 +164,7 @@ class ResamplePreprocessor(ProcessorBase):
 					else:
 						options['width'] = int(context.sdprocessing.width * context.sdprocessing.hr_scale)
 						options['height'] = int(context.sdprocessing.height * context.sdprocessing.hr_scale)
-				processed = process_txt2img(context.sdprocessing, options=options, controlnet=cn_op_arg)
+				processed = process_txt2img(context, options=options, controlnet=cn_op_arg)
 			elif self.method == 'txt2img-2pass':
 				if context.is_txtimg() and context.is_hires_fix():
 					options.update(dict(
@@ -160,7 +173,7 @@ class ResamplePreprocessor(ProcessorBase):
 						hr_resize_x=context.sdprocessing.hr_resize_x,
 						hr_resize_y=context.sdprocessing.hr_resize_y,
 					))
-				processed = process_txt2img(context.sdprocessing, options=options, controlnet=cn_op_arg)
+				processed = process_txt2img(context, options=options, controlnet=cn_op_arg)
 			elif self.method == 'img2img-1pass':
 				del cn_op_arg['input_image']
 				processed = process_img2img_with_controlnet(context, image, options=options, controlnet=cn_op_arg)

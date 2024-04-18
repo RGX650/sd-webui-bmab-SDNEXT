@@ -3,6 +3,7 @@ from PIL import Image
 from modules import devices
 from modules import images
 
+from sd_bmab import util
 from sd_bmab import constants
 from sd_bmab.util import debug_print
 from sd_bmab.base import process_img2img, Context, ProcessorBase, process_img2img_with_controlnet
@@ -15,11 +16,13 @@ class RefinerPreprocessor(ProcessorBase):
 
 		self.refiner_opt = {}
 		self.enabled = False
-		self.checkpoint = None
+		self.checkpoint = constants.checkpoint_default
+		self.vae = constants.vae_default
 		self.keep_checkpoint = True
 		self.prompt = None
 		self.negative_prompt = None
 		self.sampler = None
+		self.scheduler = None
 		self.upscaler = None
 		self.steps = 20
 		self.cfg_scale = 0.7
@@ -33,11 +36,13 @@ class RefinerPreprocessor(ProcessorBase):
 		self.enabled = context.args['refiner_enabled']
 		self.refiner_opt = context.args.get('module_config', {}).get('refiner_opt', {})
 
-		self.checkpoint = self.refiner_opt.get('checkpoint', None)
+		self.checkpoint = self.refiner_opt.get('checkpoint', self.checkpoint)
+		self.vae = self.refiner_opt.get('vae', self.vae)
 		self.keep_checkpoint = self.refiner_opt.get('keep_checkpoint', True)
 		self.prompt = self.refiner_opt.get('prompt', '')
 		self.negative_prompt = self.refiner_opt.get('negative_prompt', '')
 		self.sampler = self.refiner_opt.get('sampler', None)
+		self.scheduler = self.refiner_opt.get('scheduler', None)
 		self.upscaler = self.refiner_opt.get('upscaler', None)
 		self.steps = self.refiner_opt.get('steps', None)
 		self.cfg_scale = self.refiner_opt.get('cfg_scale', None)
@@ -52,11 +57,6 @@ class RefinerPreprocessor(ProcessorBase):
 		return self.enabled
 
 	def process(self, context: Context, image: Image):
-
-		if self.checkpoint != constants.checkpoint_default:
-			loaded_vae_file = context.args.get('loaded_vae_file')
-			context.save_and_apply_checkpoint(self.checkpoint, None, self.loaded_vae_file)
-
 		output_width = image.width
 		output_height = image.height
 
@@ -84,10 +84,10 @@ class RefinerPreprocessor(ProcessorBase):
 			debug_print('Prompt', self.prompt)
 		if self.negative_prompt == '':
 			self.negative_prompt = context.sdprocessing.negative_prompt
-		if self.checkpoint == constants.checkpoint_default:
-			self.checkpoint = context.sdprocessing.sd_model
 		if self.sampler == constants.sampler_default:
 			self.sampler = context.sdprocessing.sampler_name
+		if self.scheduler == constants.scheduler_default:
+			self.scheduler = util.get_scheduler(context.sdprocessing)
 
 		seed, subseed = context.get_seeds()
 		options = dict(
@@ -101,10 +101,10 @@ class RefinerPreprocessor(ProcessorBase):
 			inpaint_full_res_padding=32,
 			inpainting_mask_invert=0,
 			initial_noise_multiplier=1.0,
-			sd_model=self.checkpoint,
 			prompt=self.prompt,
 			negative_prompt=self.negative_prompt,
 			sampler_name=self.sampler,
+			scheduler=self.scheduler,
 			batch_size=1,
 			n_iter=1,
 			steps=self.steps,
@@ -117,15 +117,24 @@ class RefinerPreprocessor(ProcessorBase):
 		)
 		context.add_job()
 
+		if self.checkpoint is not None and self.checkpoint != constants.checkpoint_default:
+			override_settings = options.get('override_settings', {})
+			override_settings['sd_model_checkpoint'] = self.checkpoint
+			options['override_settings'] = override_settings
+		if self.vae is not None and self.vae != constants.vae_default:
+			override_settings = options.get('override_settings', {})
+			override_settings['sd_vae'] = self.vae
+			options['override_settings'] = override_settings
+		
 		if LineartNoise.with_refiner(context):
 			ln = LineartNoise()
 			if ln.preprocess(context, None):
 				controlnet = ln.get_controlnet_args(context)
 				image = process_img2img_with_controlnet(context, image, options, controlnet)
 			else:
-				image = process_img2img(context.sdprocessing, image, options=options)
+				image = process_img2img(context, image, options=options)
 		else:
-			image = process_img2img(context.sdprocessing, image, options=options)
+			image = process_img2img(context, image, options=options)
 
 		if not self.keep_checkpoint:
 			debug_print('Rollback model')

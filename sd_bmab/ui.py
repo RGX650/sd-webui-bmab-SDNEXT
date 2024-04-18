@@ -20,7 +20,7 @@ from sd_bmab import masking
 from sd_bmab.util import debug_print
 
 
-bmab_version = 'v23.12.05.0'
+bmab_version = 'v24.04.17.0'
 
 final_images = []
 last_process = None
@@ -131,9 +131,14 @@ def create_ui(bscript, is_img2img):
 						elem += gr.Textbox(placeholder='negative prompt. if empty, use main negative prompt', lines=3, visible=True, value='', label='Resample negative prompt')
 					with gr.Row():
 						with gr.Column(min_width=100):
-							asamplers = [constants.sampler_default]
-							asamplers.extend([x.name for x in shared.list_samplers()])
-							elem += gr.Dropdown(label='Sampling method', visible=True, value=asamplers[0], choices=asamplers)
+							with gr.Row():
+								with gr.Column(min_width=50):
+									asamplers = [constants.sampler_default]
+									asamplers.extend([x.name for x in shared.list_samplers()])
+									elem += gr.Dropdown(label='Sampling method', visible=True, value=asamplers[0], choices=asamplers)
+								with gr.Column(min_width=50):
+									ascheduler = util.get_scueduler_list()
+									elem += gr.Dropdown(label='Scheduler', elem_id="resample_scheduler", choices=ascheduler, value=ascheduler[0])
 						with gr.Column(min_width=100):
 							upscalers = [constants.fast_upscaler]
 							upscalers.extend([x.name for x in shared.sd_upscalers])
@@ -151,22 +156,31 @@ def create_ui(bscript, is_img2img):
 						elem += gr.Checkbox(label='Enable pretraining detailer', value=False)
 					with gr.Row():
 						elem += gr.Checkbox(label='Enable pretraining before hires.fix', value=False)
-					with gr.Column(min_width=100):
-						with gr.Row():
-							models = ['Select Model']
-							models.extend(util.list_pretraining_models())
-							pretraining_models = gr.Dropdown(label='Pretraining Model', visible=True, value=models[0], choices=models, elem_id='bmab_pretraining_models')
-							elem += pretraining_models
-							refresh_pretraining_models = ui_components.ToolButton(value='🔄', visible=True, interactive=True)
+					with gr.Row():
+						with gr.Column(min_width=100):
+							with gr.Row():
+								models = ['Select Model']
+								models.extend(util.list_pretraining_models())
+								pretraining_models = gr.Dropdown(label='Pretraining Model', visible=True, value=models[0], choices=models, elem_id='bmab_pretraining_models')
+								elem += pretraining_models
+								refresh_pretraining_models = ui_components.ToolButton(value='🔄', visible=True, interactive=True)
+						with gr.Column(min_width=100):
+							dd_pretraining_filter = gr.Dropdown(label='Pretraining filter', visible=True, value=filter.filters[0], choices=filter.filters)
+							elem += dd_pretraining_filter
 					with gr.Row():
 						elem += gr.Textbox(placeholder='prompt. if empty, use main prompt', lines=3, visible=True, value='', label='Pretraining prompt')
 					with gr.Row():
 						elem += gr.Textbox(placeholder='negative prompt. if empty, use main negative prompt', lines=3, visible=True, value='', label='Pretraining negative prompt')
 					with gr.Row():
 						with gr.Column(min_width=100):
-							asamplers = [constants.sampler_default]
-							asamplers.extend([x.name for x in shared.list_samplers()])
-							elem += gr.Dropdown(label='Sampling method', visible=True, value=asamplers[0], choices=asamplers)
+							with gr.Row():
+								with gr.Column(min_width=50):
+									asamplers = [constants.sampler_default]
+									asamplers.extend([x.name for x in shared.list_samplers()])
+									elem += gr.Dropdown(label='Sampling method', visible=True, value=asamplers[0], choices=asamplers)
+								with gr.Column(min_width=50):
+									ascheduler = util.get_scueduler_list()
+									elem += gr.Dropdown(label='Scheduler', elem_id="pretraining_scheduler", choices=ascheduler, value=ascheduler[0])
 					with gr.Row():
 						with gr.Column(min_width=100):
 							elem += gr.Slider(minimum=1, maximum=150, value=20, step=1, label='Pretraining sampling steps', elem_id='bmab_pretraining_steps')
@@ -215,11 +229,16 @@ def create_ui(bscript, is_img2img):
 							with gr.Row():
 								checkpoints = [constants.checkpoint_default]
 								checkpoints.extend([str(x) for x in sd_models.checkpoints_list.keys()])
-								refiner_models = gr.Dropdown(label='CheckPoint', visible=True, value=checkpoints[0], choices=checkpoints)
+								refiner_models = gr.Dropdown(label='CheckPoint for refiner', visible=True, value=checkpoints[0], choices=checkpoints)
 								elem += refiner_models
 								refresh_refiner_models = ui_components.ToolButton(value='🔄', visible=True, interactive=True)
 						with gr.Column():
-							gr.Markdown('')
+							with gr.Row():
+								vaes = [constants.vae_default]
+								vaes.extend([str(x) for x in sd_vae.vae_dict.keys()])
+								refiner_vaes = gr.Dropdown(label='SD VAE', visible=True, value=vaes[0], choices=vaes)
+								elem += refiner_vaes
+								refresh_refiner_vaes = ui_components.ToolButton(value='🔄', visible=True, interactive=True)
 					with gr.Row():
 						elem += gr.Checkbox(label='Use this checkpoint for detailing(Face, Person, Hand)', value=True)
 					with gr.Row():
@@ -228,9 +247,14 @@ def create_ui(bscript, is_img2img):
 						elem += gr.Textbox(placeholder='negative prompt. if empty, use main negative prompt', lines=3, visible=True, value='', label='Negative Prompt')
 					with gr.Row():
 						with gr.Column(min_width=100):
-							asamplers = [constants.sampler_default]
-							asamplers.extend([x.name for x in shared.list_samplers()])
-							elem += gr.Dropdown(label='Sampling method', visible=True, value=asamplers[0], choices=asamplers)
+							with gr.Row():
+								with gr.Column(min_width=50):
+									asamplers = [constants.sampler_default]
+									asamplers.extend([x.name for x in shared.list_samplers()])
+									elem += gr.Dropdown(label='Sampling method', visible=True, value=asamplers[0], choices=asamplers)
+								with gr.Column(min_width=50):
+									ascheduler = util.get_scueduler_list()
+									elem += gr.Dropdown(label='Scheduler', elem_id="refiner_scheduler", choices=ascheduler, value=ascheduler[0])
 						with gr.Column(min_width=100):
 							upscalers = [constants.fast_upscaler]
 							upscalers.extend([x.name for x in shared.sd_upscalers])
@@ -298,7 +322,7 @@ def create_ui(bscript, is_img2img):
 						with gr.Row():
 							elem += gr.Checkbox(label='Enable face detailing', value=False)
 						with gr.Row():
-							elem += gr.Checkbox(label='Enable face detailing before hires.fix', value=False)
+							elem += gr.Checkbox(label='Enable face detailing before upscale', value=False)
 						with gr.Row():
 							elem += gr.Checkbox(label='Disable extra networks in prompt (LORA, Hypernetwork, ...)', value=False)
 						with gr.Row():
@@ -345,14 +369,28 @@ def create_ui(bscript, is_img2img):
 										elem += gr.Slider(minimum=0, maximum=64, value=4, step=1, label='Mask Blur')
 						with gr.Row():
 							with gr.Column(min_width=100):
-								asamplers = [constants.sampler_default]
-								asamplers.extend([x.name for x in shared.list_samplers()])
-								elem += gr.Dropdown(label='Sampler', visible=True, value=asamplers[0], choices=asamplers)
-								inpaint_area = gr.Radio(label='Inpaint area', choices=['Whole picture', 'Only masked'], type='value', value='Only masked')
-								elem += inpaint_area
-								elem += gr.Slider(label='Only masked padding, pixels', minimum=0, maximum=256, step=4, value=32)
-								choices = detectors.list_face_detectors()
-								elem += gr.Dropdown(label='Detection Model', choices=choices, type='value', value=choices[0])
+								with gr.Row():
+									checkpoints = [constants.checkpoint_default]
+									checkpoints.extend([str(x) for x in sd_models.checkpoints_list.keys()])
+									face_models = gr.Dropdown(label='CheckPoint for face', visible=True, value=checkpoints[0], choices=checkpoints)
+									elem += face_models
+									refresh_face_models = ui_components.ToolButton(value='🔄', visible=True, interactive=True)
+								with gr.Row():
+									with gr.Column(min_width=50):
+										asamplers = [constants.sampler_default]
+										asamplers.extend([x.name for x in shared.list_samplers()])
+										elem += gr.Dropdown(label='Sampler', elem_id="face_sampler", visible=True, value=asamplers[0], choices=asamplers)
+									with gr.Column(min_width=50):
+										ascheduler = util.get_scueduler_list()
+										elem += gr.Dropdown(label='Scheduler', elem_id="face_scheduler", choices=ascheduler, value=ascheduler[0])
+								with gr.Row():
+									inpaint_area = gr.Radio(label='Inpaint area', choices=['Whole picture', 'Only masked'], type='value', value='Only masked')
+									elem += inpaint_area
+								with gr.Row():
+									elem += gr.Slider(label='Only masked padding, pixels', minimum=0, maximum=256, step=4, value=32)
+								with gr.Row():
+									choices = detectors.list_face_detectors()
+									elem += gr.Dropdown(label='Detection Model', choices=choices, type='value', value=choices[0])
 							with gr.Column():
 								elem += gr.Slider(minimum=0, maximum=1, value=0.4, step=0.01, label='Face Denoising Strength', elem_id='bmab_face_denoising_strength')
 								elem += gr.Slider(minimum=0, maximum=64, value=4, step=1, label='Face Dilation', elem_id='bmab_face_dilation')
@@ -366,7 +404,7 @@ def create_ui(bscript, is_img2img):
 						with gr.Row():
 							elem += gr.Checkbox(label='Enable best quality (EXPERIMENTAL, Use more GPU)', value=False)
 						with gr.Row():
-							elem += gr.Dropdown(label='Method', visible=True, interactive=True, value='subframe', choices=['subframe', 'each hand', 'inpaint each hand', 'at once'])
+							elem += gr.Dropdown(label='Method', visible=True, interactive=True, value='subframe', choices=['subframe', 'each hand', 'inpaint each hand', 'at once', 'depth hand refiner'])
 						with gr.Row():
 							elem += gr.Textbox(placeholder='prompt. if empty, use main prompt', lines=3, visible=True, value='', label='Prompt')
 						with gr.Row():
@@ -404,6 +442,17 @@ def create_ui(bscript, is_img2img):
 										elem += gr.Slider(minimum=0.0, maximum=2, value=0.4, step=0.05, elem_id='bmab_cn_noise', label='Noise strength')
 										elem += gr.Slider(minimum=0.0, maximum=1.0, value=0.1, step=0.01, elem_id='bmab_cn_noise_begin', label='Noise begin')
 										elem += gr.Slider(minimum=0.0, maximum=1.0, value=0.9, step=0.01, elem_id='bmab_cn_noise_end', label='Noise end')
+										elem += gr.Radio(label='Hire-fix option for noise', choices=['Both', 'Low res only', 'High res only'], type='value', value='Both')
+									with gr.Column():
+										gr.Markdown('')
+							with gr.Tab('Pose', elem_id='bmab_cn_pose_tabs'):
+								with gr.Row():
+									elem += gr.Checkbox(label='Enable pose', value=False)
+								with gr.Row():
+									with gr.Column():
+										elem += gr.Slider(minimum=0.0, maximum=2, value=0.3, step=0.05, elem_id='bmab_cn_pose', label='Pose strength')
+										elem += gr.Slider(minimum=0.0, maximum=1.0, value=0.0, step=0.01, elem_id='bmab_cn_pose_begin', label='Pose begin')
+										elem += gr.Slider(minimum=0.0, maximum=1.0, value=1.0, step=0.01, elem_id='bmab_cn_pose_end', label='Pose end')
 									with gr.Column():
 										gr.Markdown('')
 		with gr.Accordion(f'BMAB Postprocessor', open=False):
@@ -537,6 +586,19 @@ def create_ui(bscript, is_img2img):
 				}
 			}
 
+		def hit_face_model(value, *args):
+			checkpoints = [constants.checkpoint_default]
+			checkpoints.extend([str(x) for x in sd_models.checkpoints_list.keys()])
+			if value not in checkpoints:
+				value = checkpoints[0]
+			return {
+				face_models: {
+					'choices': checkpoints,
+					'value': value,
+					'__type__': 'update'
+				}
+			}
+
 		def hit_pretraining_model(value, *args):
 			models = ['Select Model']
 			models.extend(util.list_pretraining_models())
@@ -576,6 +638,19 @@ def create_ui(bscript, is_img2img):
 				}
 			}
 
+		def hit_refiner_vae(value, *args):
+			vaes = [constants.vae_default]
+			vaes.extend([str(x) for x in sd_vae.vae_dict.keys()])
+			if value not in vaes:
+				value = vaes[0]
+			return {
+				refiner_vaes: {
+					'choices': vaes,
+					'value': value,
+					'__type__': 'update'
+				}
+			}
+	
 		def hit_checkpoint_model(value, *args):
 			checkpoints = [constants.checkpoint_default]
 			checkpoints.extend([str(x) for x in sd_models.checkpoints_list.keys()])
@@ -662,7 +737,7 @@ def create_ui(bscript, is_img2img):
 				}
 			}
 
-		def reload_filter(f1, f2, f3, f4, f5, *args):
+		def reload_filter(f1, f2, f3, f4, f5, f6, *args):
 			filter.reload_filters()
 			return {
 				dd_hiresfix_filter1: {
@@ -689,7 +764,12 @@ def create_ui(bscript, is_img2img):
 					'choices': filter.filters,
 					'value': f5,
 					'__type__': 'update'
-				}
+				},
+				dd_pretraining_filter: {
+					'choices': filter.filters,
+					'value': f6,
+					'__type__': 'update'
+				},
 			}
 
 		def image_selected(data: gr.SelectData, *args):
@@ -720,6 +800,8 @@ def create_ui(bscript, is_img2img):
 		reset_btn.click(reset_config, outputs=elem)
 		refresh_btn.click(refresh_preset, outputs=elem)
 		refresh_refiner_models.click(hit_refiner_model, inputs=[refiner_models], outputs=[refiner_models])
+		refresh_refiner_vaes.click(hit_refiner_vae, inputs=[refiner_vaes], outputs=[refiner_vaes])
+		refresh_face_models.click(hit_face_model, inputs=[face_models], outputs=[face_models])
 		refresh_pretraining_models.click(hit_pretraining_model, inputs=[pretraining_models], outputs=[pretraining_models])
 		refresh_resample_models.click(hit_resample_model, inputs=[resample_models], outputs=[resample_models])
 		refresh_resample_vaes.click(hit_resample_vae, inputs=[resample_vaes], outputs=[resample_vaes])
@@ -727,7 +809,11 @@ def create_ui(bscript, is_img2img):
 		refresh_vae_models.click(hit_vae_models, inputs=[vaes_models], outputs=[vaes_models])
 		random_checkpoint.click(merge_random_checkpoint, outputs=[merge_result])
 		btn_fetch_images.click(fetch_images, outputs=[gallery])
-		btn_reload_filter.click(reload_filter, inputs=[dd_hiresfix_filter1, dd_hiresfix_filter2, dd_resample_filter, dd_resize_filter, dd_final_filter], outputs=[dd_hiresfix_filter1, dd_hiresfix_filter2, dd_resample_filter, dd_resize_filter, dd_final_filter])
+		btn_reload_filter.click(
+			reload_filter,
+			inputs=[dd_hiresfix_filter1, dd_hiresfix_filter2, dd_resample_filter, dd_resize_filter, dd_final_filter, dd_pretraining_filter],
+			outputs=[dd_hiresfix_filter1, dd_hiresfix_filter2, dd_resample_filter, dd_resize_filter, dd_final_filter, dd_pretraining_filter]
+		)
 
 		btn_process_pipeline.click(process_pipeline, inputs=elem, outputs=[result_image])
 		gallery.select(image_selected, inputs=[gallery])
@@ -757,9 +843,10 @@ def on_ui_settings():
 	shared.opts.add_option('bmab_use_specific_model', shared.OptionInfo(False, 'Use specific model', section=('bmab', 'BMAB')))
 	shared.opts.add_option('bmab_model', shared.OptionInfo(default='', label='Checkpoint for Person, Face, Hand', component=gr.Textbox, component_args='', section=('bmab', 'BMAB')))
 	shared.opts.add_option('bmab_cn_openpose', shared.OptionInfo(default='control_v11p_sd15_openpose_fp16 [73c2b67d]', label='ControlNet openpose model', component=gr.Textbox, component_args='', section=('bmab', 'BMAB')))
-	shared.opts.add_option('bmab_cn_lineart', shared.OptionInfo(default='control_v11p_sd15_lineart [43d4be0d]', label='ControlNet lineart model', component=gr.Textbox, component_args='', section=('bmab', 'BMAB')))
+	shared.opts.add_option('bmab_cn_lineart', shared.OptionInfo(default='control_v11p_sd15_lineart_fp16 [5c23b17d]', label='ControlNet lineart model', component=gr.Textbox, component_args='', section=('bmab', 'BMAB')))
 	shared.opts.add_option('bmab_cn_inpaint', shared.OptionInfo(default='control_v11p_sd15_inpaint_fp16 [be8bc0ed]', label='ControlNet inpaint model', component=gr.Textbox, component_args='', section=('bmab', 'BMAB')))
 	shared.opts.add_option('bmab_cn_tile_resample', shared.OptionInfo(default='control_v11f1e_sd15_tile_fp16 [3b860298]', label='ControlNet tile model', component=gr.Textbox, component_args='', section=('bmab', 'BMAB')))
+	shared.opts.add_option('bmab_cn_inpaint_depth_hand', shared.OptionInfo(default='control_sd15_inpaint_depth_hand_fp16 [09456e54]', label='ControlNet tile model', component=gr.Textbox, component_args='', section=('bmab', 'BMAB')))
 	shared.opts.add_option('img2img_extra_noise',shared.OptionInfo(default=0.0, label="Extra noise multiplier for img2img and hires fix", component=gr.Slider, component_args={"minimum": 0.0, "maximum": 1.0, "step": 0.01}, section=('bmab', 'BMAB')))
 	shared.opts.add_option('randn_source',shared.OptionInfo(default="NV", label="RNG", component=gr.Radio, component_args={"choices": ["GPU", "CPU", "NV"]}, section=('bmab', 'BMAB')))
 

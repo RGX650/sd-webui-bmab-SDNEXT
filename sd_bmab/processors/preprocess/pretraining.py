@@ -9,6 +9,7 @@ from PIL import ImageFilter
 from modules import devices
 
 from sd_bmab import constants, util
+from sd_bmab.base import filter
 from sd_bmab.base import process_img2img, Context, ProcessorBase, VAEMethodOverride
 from sd_bmab.util import debug_print
 
@@ -19,11 +20,13 @@ class PretrainingDetailer(ProcessorBase):
 		self.pretraining_opt = {}
 
 		self.enabled = False
+		self.filter = 'None'
 		self.hiresfix_enabled = False
 		self.pretraining_model = None
 		self.prompt = ''
 		self.negative_prompt = ''
-		self.sampler = ''
+		self.sampler = constants.sampler_default
+		self.scheduler = constants.scheduler_default
 		self.steps = 20
 		self.cfg_scale = 7
 		self.denoising_strength = 0.75
@@ -56,9 +59,11 @@ class PretrainingDetailer(ProcessorBase):
 		self.pretraining_opt = context.args.get('module_config', {}).get('pretraining_opt', {})
 		self.hiresfix_enabled = self.pretraining_opt.get('hiresfix_enabled', self.hiresfix_enabled)
 		self.pretraining_model = self.pretraining_opt.get('pretraining_model', self.pretraining_model)
+		self.filter = self.pretraining_opt.get('filter', self.filter)
 		self.prompt = self.pretraining_opt.get('prompt', self.prompt)
 		self.negative_prompt = self.pretraining_opt.get('negative_prompt', self.negative_prompt)
 		self.sampler = self.pretraining_opt.get('sampler', self.sampler)
+		self.scheduler = self.pretraining_opt.get('scheduler', self.scheduler)
 		self.steps = self.pretraining_opt.get('steps', self.steps)
 		self.cfg_scale = self.pretraining_opt.get('cfg_scale', self.cfg_scale)
 		self.denoising_strength = self.pretraining_opt.get('denoising_strength', self.denoising_strength)
@@ -72,6 +77,14 @@ class PretrainingDetailer(ProcessorBase):
 		return self.enabled
 
 	def process(self, context: Context, image: Image):
+		bmab_filter = filter.get_filter(self.filter)
+		filter.preprocess_filter(bmab_filter, context, image)
+		image = self.process_pretraining(context, image)
+		image = filter.process_filter(bmab_filter, context, image, image)
+		filter.postprocess_filter(bmab_filter, context)
+		return image
+
+	def process_pretraining(self, context: Context, image: Image):
 		boxes, logits = self.predict(context, image, self.pretraining_model, self.confidence)
 
 		org_size = image.size
@@ -82,6 +95,7 @@ class PretrainingDetailer(ProcessorBase):
 			'steps': self.steps,
 			'cfg_scale': self.cfg_scale,
 			'sampler_name': context.sdprocessing.sampler_name if self.sampler == constants.sampler_default else self.sampler,
+			'scheduler': util.get_scheduler(context.sdprocessing) if self.scheduler == constants.scheduler_default else self.scheduler,
 			'denoising_strength': self.denoising_strength,
 			'width': context.sdprocessing.width,
 			'height': context.sdprocessing.height,
@@ -110,7 +124,6 @@ class PretrainingDetailer(ProcessorBase):
 			else:
 				pretraining_config['prompt'] = context.get_prompt_by_index()
 
-			pretraining_config['prompt'] = prompt
 			pretraining_config['negative_prompt'] = context.get_negative_prompt_by_index()
 
 			debug_print('prompt', pretraining_config['prompt'])
@@ -129,9 +142,14 @@ class PretrainingDetailer(ProcessorBase):
 			seed, subseed = context.get_seeds()
 			options = dict(mask=detected_mask, seed=seed, subseed=subseed, **pretraining_config)
 			with VAEMethodOverride():
-				img2img_imgage = process_img2img(context.sdprocessing, image, options=options)
+				img2img_imgage = process_img2img(context, image, options=options)
 
 			x1, y1, x2, y2 = util.fix_box_size(box)
+			x1 -= int(detected_mask.width / 2)
+			x2 += int(detected_mask.width / 2)
+			y1 -= int(detected_mask.height / 2)
+			y2 += int(detected_mask.height / 2)
+			
 			detected_mask = Image.new('L', image.size, color=0)
 			dr = ImageDraw.Draw(detected_mask, 'L')
 			dr.rectangle((x1, y1, x2, y2), fill=255)

@@ -1,3 +1,38 @@
+### v24.04.17
+
+* New Features
+  * Pose
+    * sd-webui-bmab/pose 디렉토리에 있는 이미지를 이용하여 openpose를 동작한다.
+    * seed에 맞춰서 임의이 순서로 동작한다.
+  * Face
+    * CheckPoint를 선택할 수 있도록 추가
+  * Pretraining
+    * Filter를 선택할 수 있도록 추가
+  * Refiner
+    * VAE를 선택할 수 있도록 추가
+  * Noise
+    * Both, Low res fix, High res fix 추가.
+
+
+### v24.04.16
+
+* Code Fix
+  * 1.9.0 지원
+  * 1.8.0 하위 호환
+  * CheckPoint 관련 전반 수정
+  * basicsr 설치 오류 수정
+
+
+### v24.04.05
+
+* Code Fix
+  * 1.8.0 설치시에 동작하지 않는 버그를 수정했습니다.
+  * preprocess filter 분리
+  * hires.fix - upscale 시에 필터가 정확하게 적용되지 않는 버그 수정
+  * ControlNet Noise 사용시에 그레이 이미지를 사용하도록 수정
+  * 그 외 몇가지 코드 리펙토링
+
+
 ### v23.11.30.0
 
 * Code Fix

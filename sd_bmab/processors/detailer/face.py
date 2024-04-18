@@ -30,7 +30,9 @@ class FaceDetailer(ProcessorBase):
 		self.box_threshold = 0.35
 		self.order = 'Score'
 		self.limit = 1
+		self.checkpoint = constants.checkpoint_default
 		self.sampler = constants.sampler_default
+		self.scheduler = constants.scheduler_default
 		self.disable_extra_networks = False
 		self.detection_model = 'Ultralytics(face_yolov8n.pt)'
 		self.max_element = shared.opts.bmab_max_detailing_element
@@ -48,7 +50,9 @@ class FaceDetailer(ProcessorBase):
 		self.box_threshold = self.detailing_opt.get('box_threshold', self.box_threshold)
 		self.order = self.detailing_opt.get('sort_by', self.order)
 		self.limit = self.detailing_opt.get('limit', self.limit)
+		self.checkpoint = self.detailing_opt.get('checkpoint', self.checkpoint)
 		self.sampler = self.detailing_opt.get('sampler', self.sampler)
+		self.scheduler = self.detailing_opt.get('scheduler', self.scheduler)
 		self.disable_extra_networks = self.detailing_opt.get('disable_extra_networks', self.disable_extra_networks)
 		self.detection_model = self.detailing_opt.get('detection_model', self.detection_model)
 		self.skip_large_face = self.detailing_opt.get('skip_large_face', self.skip_large_face)
@@ -70,6 +74,9 @@ class FaceDetailer(ProcessorBase):
 			'denoising_strength': self.parameters['denoising_strength'],
 			'inpaint_full_res': self.parameters['inpaint_full_res'],
 			'inpaint_full_res_padding': self.parameters['inpaint_full_res_padding'],
+			'mask_blur': self.parameters['mask_blur'],
+			'cfg_scale': context.sdprocessing.cfg_scale,
+			'steps': context.sdprocessing.steps,
 		}
 
 		if self.override_parameter:
@@ -79,16 +86,16 @@ class FaceDetailer(ProcessorBase):
 				face_config['width'] = image.width
 				face_config['height'] = image.height
 			else:
+				face_config['width'] = 512
+				face_config['height'] = 512
 				if isinstance(context.sdprocessing, StableDiffusionProcessingImg2Img):
-					face_config['width'] = context.sdprocessing.init_images[0].width
-					face_config['height'] = context.sdprocessing.init_images[0].height
-				else:
-					face_config['width'] = context.sdprocessing.width
-					face_config['height'] = context.sdprocessing.height
+					face_config['mask_blur'] = context.sdprocessing.mask_blur
 
 		if self.sampler != constants.sampler_default:
 			face_config['sampler_name'] = self.sampler
-
+		if self.scheduler != constants.scheduler_default:
+			face_config['scheduler'] = self.scheduler
+			
 		context.add_generation_param('BMAB_face_option', util.dict_to_str(self.detailing_opt))
 		context.add_generation_param('BMAB_face_parameter', util.dict_to_str(face_config))
 
@@ -178,11 +185,17 @@ class FaceDetailer(ProcessorBase):
 
 			seed, subseed = context.get_seeds()
 			options = dict(mask=face_mask, seed=seed, subseed=subseed, **face_config)
+
+			if self.checkpoint is not None and self.checkpoint != constants.checkpoint_default:
+				override_settings = options.get('override_settings', {})
+				override_settings['sd_model_checkpoint'] = self.checkpoint
+				options['override_settings'] = override_settings
+
 			if self.disable_extra_networks:
 				prompt, extra_network_data = extra_networks.parse_prompts([options['prompt']])
 				options['prompt'] = prompt
 			with VAEMethodOverride():
-				img2img_imgage = process_img2img(context.sdprocessing, image, options=options)
+				img2img_imgage = process_img2img(context, image, options=options)
 
 			x1, y1, x2, y2 = util.fix_box_size(box)
 			face_mask = Image.new('L', image.size, color=0)
@@ -195,3 +208,13 @@ class FaceDetailer(ProcessorBase):
 
 	def postprocess(self, context: Context, image: Image):
 		devices.torch_gc()
+
+
+class PreprocessFaceDetailer(FaceDetailer):
+
+	def __init__(self, step=2) -> None:
+		super().__init__(step)
+
+	def preprocess(self, context: Context, image: Image):
+		super().preprocess(context, image)
+		return not context.is_hires_fix() and self.hiresfix_enabled

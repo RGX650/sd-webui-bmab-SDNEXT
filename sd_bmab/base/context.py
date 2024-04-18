@@ -5,7 +5,7 @@ from modules import sd_vae
 from modules.sd_vae import loaded_vae_file
 from modules.processing import StableDiffusionProcessingImg2Img
 
-from sd_bmab.sd_override import StableDiffusionProcessingTxt2ImgOv#, StableDiffusionProcessingImg2ImgOv
+from sd_bmab.sd_override import StableDiffusionProcessingTxt2ImgOv, StableDiffusionProcessingImg2ImgOv
 from sd_bmab.util import debug_print
 from sd_bmab import constants
 
@@ -22,6 +22,8 @@ class Context(object):
 		self.refiner = None
 		self.base_sd_model = None
 		self.base_vae = None
+		self.sd_model_name = None
+		self.sd_vae_name = None
 
 	@staticmethod
 	def newContext(s, p, a, idx, **kwargs):
@@ -79,8 +81,8 @@ class Context(object):
 		shared.state.current_image_sampling_step = 0
 
 	def is_img2img(self):
-		#return isinstance(self.sdprocessing, StableDiffusionProcessingImg2ImgOv) or isinstance(self.sdprocessing, StableDiffusionProcessingImg2Img)
-		return isinstance(self.sdprocessing, StableDiffusionProcessingImg2Img)
+		return isinstance(self.sdprocessing, StableDiffusionProcessingImg2ImgOv) or isinstance(self.sdprocessing, StableDiffusionProcessingImg2Img)
+		#return isinstance(self.sdprocessing, StableDiffusionProcessingImg2Img)
 
 	def is_txtimg(self):
 		return isinstance(self.sdprocessing, StableDiffusionProcessingTxt2ImgOv)
@@ -105,9 +107,11 @@ class Context(object):
 	
 	def save_and_apply_checkpoint(self, checkpoint, vae, loaded_vae_file):
 		if checkpoint is not None and self.base_sd_model is None:
-			self.base_sd_model = shared.opts.data['sd_model_checkpoint']
+			self.base_sd_model = shared.sd_model.sd_checkpoint_info.name_for_extra
+			print(shared.sd_model.sd_checkpoint_info.name_for_extra)
+			print(shared.opts.data['sd_model_checkpoint'])
 		if vae is not None and self.base_vae is None:
-			self.base_vae = self.get_loaded_vae_name(loaded_vae_file)
+			self.base_vae = sd_vae.get_loaded_vae_name()
 		self.change_checkpoint(checkpoint, vae)
 
 	def restore_checkpoint(self):
@@ -115,3 +119,13 @@ class Context(object):
 			self.change_checkpoint(self.base_sd_model, self.base_vae)
 			self.base_sd_model = None
 			self.base_vae = None
+
+	def apply_checkpoint(self, options):
+		if self.sd_model_name is not None and self.sd_model_name != constants.checkpoint_default:
+			override_settings = options.get('override_settings', {})
+			override_settings['sd_model_checkpoint'] = self.sd_model_name
+			options['override_settings'] = override_settings
+		if self.sd_vae_name is not None and self.sd_vae_name != constants.vae_default:
+			override_settings = options.get('override_settings', {})
+			override_settings['sd_vae'] = self.sd_vae_name
+			options['override_settings'] = override_settings
