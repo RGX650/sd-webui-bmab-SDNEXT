@@ -36,11 +36,9 @@ class SkipWritingToConfig:
 
 @dataclass(repr=False)
 class StableDiffusionProcessingTxt2ImgOv(StableDiffusionProcessingTxt2Img):
-    def __init__(self, sdprocessing, **kwargs):
+    def __init__(self, p, **kwargs):
         super().__init__(**kwargs)
-        # Initialize the sdprocessing attribute
-        self.sdprocessing = sdprocessing
-        
+        self.p = p
         self.shape=[4, self.height // 8, self.width // 8]
         
         self.bscript = None
@@ -54,9 +52,10 @@ class StableDiffusionProcessingTxt2ImgOv(StableDiffusionProcessingTxt2Img):
         self.extra_generation_params['Hires negative prompt'] = ''
         return ret
     
-    def txt2img_image_conditioning(self, p, x, width=None, height=None):
+    def txt2img_image_conditioning(self, x, width=None, height=None):
         width = width or p.width
         height = height or p.height
+        p = self.p  # Now `p` is accessible
         if p.sd_model.model.conditioning_key in {'hybrid', 'concat'}: # Inpainting models
             image_conditioning = torch.zeros(x.shape[0], 3, height, width, device=x.device)
             image_conditioning = p.sd_model.get_first_stage_encoding(p.sd_model.encode_first_stage(image_conditioning))
