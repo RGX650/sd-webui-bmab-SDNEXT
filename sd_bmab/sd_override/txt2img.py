@@ -38,6 +38,7 @@ class SkipWritingToConfig:
 class StableDiffusionProcessingTxt2ImgOv(StableDiffusionProcessingTxt2Img):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+        self.sdprocessing = None
         
         self.shape=[4, self.height // 8, self.width // 8]
         
