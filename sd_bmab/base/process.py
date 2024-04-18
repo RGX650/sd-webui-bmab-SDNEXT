@@ -7,7 +7,7 @@ from pathlib import Path
 from modules import shared, sd_models
 from modules.shared import opts, state, sd_model
 from modules import devices
-from modules.processing import process_images, StableDiffusionProcessingImg2Img
+from modules.processing import process_images
 
 from sd_bmab import util
 from sd_bmab.base.common import StopGeneration
