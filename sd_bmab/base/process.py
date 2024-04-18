@@ -113,7 +113,6 @@ def process_img2img(context: Context, img, options=None):
 	i2i_param = build_img2img(context, img, options)
 
 	img2img = StableDiffusionProcessingImg2ImgOv(**i2i_param)
-	#img2img = StableDiffusionProcessingImg2Img(**i2i_param)
 	img2img.cached_c = [None, None]
 	img2img.cached_uc = [None, None]
 	img2img.scripts, img2img.script_args = apply_extensions(context.sdprocessing)
@@ -132,7 +131,6 @@ def process_img2img_with_controlnet(context: Context, image, options, controlnet
 	i2i_param = build_img2img(context.sdprocessing, image, options)
 
 	img2img = StableDiffusionProcessingImg2ImgOv(**i2i_param)
-	#img2img = StableDiffusionProcessingImg2Img(**i2i_param)
 	img2img.cached_c = [None, None]
 	img2img.cached_uc = [None, None]
 	img2img.scripts, img2img.script_args = apply_extensions(context.sdprocessing, cn_enabled=True)
