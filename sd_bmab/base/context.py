@@ -82,10 +82,9 @@ class Context(object):
 
 	def is_img2img(self):
 		return isinstance(self.sdprocessing, StableDiffusionProcessingImg2ImgOv) or isinstance(self.sdprocessing, StableDiffusionProcessingImg2Img)
-		#return isinstance(self.sdprocessing, StableDiffusionProcessingImg2Img)
 
 	def is_txtimg(self):
-		return isinstance(self.sdprocessing, StableDiffusionProcessingTxt2ImgOv)
+		return isinstance(self.sdprocessing, StableDiffusionProcessingTxt2ImgOv) or isinstance(self.sdprocessing, StableDiffusionProcessingTxt2Img)
 
 	def change_checkpoint(self, name, vae):
 		if name is None:
