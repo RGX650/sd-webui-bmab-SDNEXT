@@ -52,7 +52,7 @@ class StableDiffusionProcessingTxt2ImgOv(StableDiffusionProcessingTxt2Img):
         self.extra_generation_params['Hires negative prompt'] = ''
         return ret
     
-    def txt2img_image_conditioning(self, x, width=None, height=None):
+    def txt2img_image_conditioning(self, p, x, width=None, height=None):
         width = width or p.width
         height = height or p.height
         p = self.p  # Now `p` is accessible
