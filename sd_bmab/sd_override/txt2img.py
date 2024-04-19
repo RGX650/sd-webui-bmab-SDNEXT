@@ -55,7 +55,6 @@ class StableDiffusionProcessingTxt2ImgOv(StableDiffusionProcessingTxt2Img):
     def txt2img_image_conditioning(p, x, width=None, height=None):
         width = width or p.width
         height = height or p.height
-        p = self.p  # Now `p` is accessible
         if p.sd_model.model.conditioning_key in {'hybrid', 'concat'}: # Inpainting models
             image_conditioning = torch.zeros(x.shape[0], 3, height, width, device=x.device)
             image_conditioning = p.sd_model.get_first_stage_encoding(p.sd_model.encode_first_stage(image_conditioning))
