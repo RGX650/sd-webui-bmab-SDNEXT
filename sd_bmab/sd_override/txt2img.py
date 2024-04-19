@@ -36,9 +36,9 @@ class SkipWritingToConfig:
 
 @dataclass(repr=False)
 class StableDiffusionProcessingTxt2ImgOv(StableDiffusionProcessingTxt2Img):
-    def __init__(self, p, **kwargs):
+    def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.p = p
+
         self.shape=[4, self.height // 8, self.width // 8]
         
         self.bscript = None
@@ -52,7 +52,7 @@ class StableDiffusionProcessingTxt2ImgOv(StableDiffusionProcessingTxt2Img):
         self.extra_generation_params['Hires negative prompt'] = ''
         return ret
     
-    def txt2img_image_conditioning(self, p, x, width=None, height=None):
+    def txt2img_image_conditioning(p, x, width=None, height=None):
         width = width or p.width
         height = height or p.height
         p = self.p  # Now `p` is accessible
