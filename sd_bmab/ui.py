@@ -840,7 +840,7 @@ def create_ui(bscript, is_img2img):
 			bscript.stop_generation = True
 			gr.Info('Waiting for processing done.')
 
-				def pose_selected(*args):
+		def pose_selected(*args):
 			print(args)
 			return Openpose.get_pose(args[0])
 
