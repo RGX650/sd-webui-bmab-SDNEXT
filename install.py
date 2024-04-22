@@ -75,3 +75,9 @@ targets_no_huggingface = {
     'sam_vit_h_4b8939.pth': 'https://dl.fbaipublicfiles.com/segment_anything/sam_vit_h_4b8939.pth',
     'GroundingDINO_SwinT_OGC.py': 'https://raw.githubusercontent.com/IDEA-Research/GroundingDINO/main/groundingdino/config/GroundingDINO_SwinT_OGC.py',
 }
+
+
+bmab_pose_path = os.path.join(data_path, "pose")
+if (!(Test-Path -Path bmab_pose_path)) { New-Item -Path bmab_pose_path -ItemType Directory }
+
+
