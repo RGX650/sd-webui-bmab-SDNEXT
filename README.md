@@ -1,7 +1,7 @@
 
 # BMAB - SDNEXT
 
-SDNEXT Version: app=sd.next updated=2024-04-09 hash=7ecc1d7d branch=master
+SDNEXT Version: app=sd.next updated=2024-04-21 hash=de267390 branch=master
 BMAB Version: v24.04.20
 
 [ LOOKING FOR EXPERIENCED MAINTAINER !!! ]
