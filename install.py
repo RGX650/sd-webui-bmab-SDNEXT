@@ -78,6 +78,7 @@ targets_no_huggingface = {
 
 
 bmab_pose_path = os.path.join(data_path, "pose")
-if (!(Test-Path -Path bmab_pose_path)) { New-Item -Path bmab_pose_path -ItemType Directory }
+if not os.path.exists(bmab_pose_path):
+    os.makedirs(bmab_pose_path)
 
 
