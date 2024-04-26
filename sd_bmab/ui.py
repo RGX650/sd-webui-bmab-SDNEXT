@@ -664,12 +664,16 @@ def create_ui(bscript, is_img2img):
 		def reload_filter(*args):
 			filter.reload_filters()
 			inputs = list(args)
+			
 			_checkpoints = [constants.checkpoint_default]
 			_checkpoints.extend([str(x) for x in sd_models.checkpoints_list.keys()])
+			
 			_vaes = [constants.vae_default]
 			_vaes.extend([str(x) for x in sd_vae.vae_dict.keys()])
+			
 			_pretraining_models = ['Select Model']
 			_pretraining_models.extend(util.list_pretraining_models())
+			
 			_poses = ['Random']
 			_poses.extend(Openpose.list_pose())
 
@@ -721,7 +725,6 @@ def create_ui(bscript, is_img2img):
 		save_btn.click(save_config, inputs=elem, outputs=[config_dd])
 		reset_btn.click(reset_config, outputs=elem)
 		refresh_btn.click(refresh_preset, outputs=elem)
-			return ret
 
 		random_checkpoint.click(merge_random_checkpoint, outputs=[merge_result])
 		btn_fetch_images.click(fetch_images, outputs=[gallery])
