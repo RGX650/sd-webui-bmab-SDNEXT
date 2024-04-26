@@ -368,6 +368,7 @@ def create_ui(bscript, is_img2img):
 										elem += gr.Slider(minimum=0, maximum=64, value=4, step=1, label='Mask Blur')
 						with gr.Row():
 							with gr.Column(min_width=100):
+								with gr.Row():
 									with gr.Column(min_width=50):
 										face_models = gr.Dropdown(label='CheckPoint for face', visible=True, value=ui_checkpoints[0], choices=ui_checkpoints)
 										elem += face_models
